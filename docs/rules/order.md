@@ -1,7 +1,7 @@
 # import/order: Enforce a convention in module import order
 
 Enforce a convention in the order of `require()` / `import` statements.
-+(fixable) The `--fix` option on the [command line] automatically fixes problems reported by this rule.
++(fixable) The `--fix` option on the [command line] automatically fixes problems reported by this rule. When the `alphabetize` option is used, multiple fix passes may be required.
 The order is as shown in the following example:
 
 ```js
@@ -96,7 +96,6 @@ You can set the options like this:
 
 ### `newlines-between: [ignore|always|always-and-inside-groups|never]`:
 
-
 Enforces or forbids new lines between import groups:
 
 - If set to `ignore`, no errors related to new lines between import groups will be reported (default).
@@ -162,6 +161,26 @@ import fs from 'fs';
 import path from 'path';
 import index from './';
 import sibling from './foo';
+```
+
+### `alphabetize`: boolean
+
+By default, no ordering within groups is enforced. When `alphabetize: true` is used, imports must be alphabetically ordered within their groups.
+
+### Fail
+
+```js
+/* eslint import/order: ["error", {"alphabetize": true}] */
+import buffer from 'buffer';
+import assert from 'assert';
+```
+
+### Pass
+
+```js
+/* eslint import/order: ["error", {"alphabetize": true}] */
+import assert from 'assert';
+import buffer from 'buffer';
 ```
 
 ## Related

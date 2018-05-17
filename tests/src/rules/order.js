@@ -406,6 +406,75 @@ ruleTester.run('order', rule, {
         },
       ],
     }),
+    // Option alphabetize: {order: 'ignore'}
+    test({
+      code: `
+        import foo from 'foo';
+        import bar from 'bar';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'ignore'}
+      }]
+    }),
+    // Option alphabetize: {order: 'asc', ignoreCase: false}
+    test({
+      code: `
+        import Baz from 'Baz';
+        import bar from 'bar';
+        import foo from 'foo';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'asc', ignoreCase: false}
+      }]
+    }),
+    // Option alphabetize: {order: 'asc', ignoreCase: true}
+    test({
+      code: `
+        import bar from 'bar';
+        import Baz from 'Baz';
+        import foo from 'foo';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'asc', ignoreCase: true}
+      }]
+    }),
+    // Option alphabetize: {order: 'desc', ignoreCase: false}
+    test({
+      code: `
+        import foo from 'foo';
+        import bar from 'bar';
+        import Baz from 'Baz';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'desc', ignoreCase: false}
+      }]
+    }),
+    // Option alphabetize: {order: 'desc', ignoreCase: true}
+    test({
+      code: `
+        import foo from 'foo';
+        import Baz from 'Baz';
+        import bar from 'bar';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'desc', ignoreCase: true}
+      }]
+    })
   ],
   invalid: [
     // builtin before external module (require)
@@ -1276,5 +1345,101 @@ ruleTester.run('order', rule, {
         message: '`fs` import should occur before import of `async`',
       }],
     }),
+    // Option alphabetize: {order: 'asc', ignoreCase: false}
+    test({
+      code: `
+        import bar from 'bar';
+        import Baz from 'Baz';
+        import foo from 'foo';
+
+        import index from './';
+      `,
+      output: `
+        import Baz from 'Baz';
+        import bar from 'bar';
+        import foo from 'foo';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'asc', ignoreCase: false}
+      }],
+      errors: [{
+        ruleID: 'order',
+        message: '`Baz` import should occur before import of `bar`',
+      }]
+    }),
+    // Option alphabetize: {order: 'asc', ignoreCase: true}
+    test({
+      code: `
+        import Baz from 'Baz';
+        import bar from 'bar';
+        import foo from 'foo';
+
+        import index from './';
+      `,
+      output: `
+        import bar from 'bar';
+        import Baz from 'Baz';
+        import foo from 'foo';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'asc', ignoreCase: true}
+      }],
+    }),
+    // Option alphabetize: {order: 'desc', ignoreCase: false}
+    test({
+      code: `
+        import foo from 'foo';
+        import Baz from 'Baz';
+        import bar from 'bar';
+
+        import index from './';
+      `,
+      output: `
+        import foo from 'foo';
+        import bar from 'bar';
+        import Baz from 'Baz';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'desc', ignoreCase: false}
+      }],
+      errors: [{
+        ruleID: 'order',
+        message: '`bar` import should occur before import of `Baz`',
+      }]
+    }),
+    // Option alphabetize: {order: 'desc', ignoreCase: true}
+    test({
+      code: `
+        import foo from 'foo';
+        import bar from 'bar';
+        import Baz from 'Baz';
+
+        import index from './';
+      `,
+      output: `
+        import foo from 'foo';
+        import Baz from 'Baz';
+        import bar from 'bar';
+
+        import index from './';
+      `,
+      options: [{
+        groups: ['external', 'index'],
+        alphabetize: {order: 'desc', ignoreCase: true}
+      }],
+      errors: [{
+        ruleID: 'order',
+        message: '`Baz` import should occur before import of `bar`',
+      }]
+    })
   ],
 })

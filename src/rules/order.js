@@ -13,6 +13,7 @@ function reverse(array) {
     return {
       name: v.name,
       rank: -v.rank,
+      groupRank: -v.rank,
       node: v.node,
     }
   }).reverse()
@@ -176,12 +177,12 @@ function fixOutOfOrder(context, firstNode, secondNode, order) {
   const sourceCode = context.getSourceCode()
 
   const firstRoot = findRootNode(firstNode.node)
-  let firstRootStart = findStartOfLineWithComments(sourceCode, firstRoot)
+  const firstRootStart = findStartOfLineWithComments(sourceCode, firstRoot)
   const firstRootEnd = findEndOfLineWithComments(sourceCode, firstRoot)
 
   const secondRoot = findRootNode(secondNode.node)
-  let secondRootStart = findStartOfLineWithComments(sourceCode, secondRoot)
-  let secondRootEnd = findEndOfLineWithComments(sourceCode, secondRoot)
+  const secondRootStart = findStartOfLineWithComments(sourceCode, secondRoot)
+  const secondRootEnd = findEndOfLineWithComments(sourceCode, secondRoot)
   const canFix = canReorderItems(firstRoot, secondRoot)
 
   let newCode = sourceCode.text.substring(secondRootStart, secondRootEnd)
@@ -239,17 +240,61 @@ function makeOutOfOrderReport(context, imported) {
   reportOutOfOrder(context, imported, outOfOrder, 'before')
 }
 
+function mutateRanksToAlphabetize(imported, order, ignoreCase) {
+  const groupedByRanks = imported.reduce(function(acc, importedItem) {
+    acc[importedItem.rank] = acc[importedItem.rank] || []
+    acc[importedItem.rank].push(importedItem.name)
+    return acc
+  }, {})
+
+  const groupRanks = Object.keys(groupedByRanks)
+
+  // sort imports locally within their group
+  groupRanks.forEach(function(groupRank) {
+    groupedByRanks[groupRank].sort(function(importA, importB) {
+      return ignoreCase
+        ? importA.localeCompare(importB)
+        : (importA < importB ? -1 : (importA === importB ? 0 : 1))
+    })
+
+    if (order === 'desc') {
+      groupedByRanks[groupRank].reverse()
+    }
+  })
+
+  // assign globally unique rank to each import
+  let newRank = 0
+  const alphabetizedRanks = groupRanks.sort().reduce(function(acc, groupRank) {
+    groupedByRanks[groupRank].forEach(function(importedItemName) {
+      acc[importedItemName] = newRank
+      newRank += 1
+    })
+    return acc
+  }, {})
+
+  // mutate the original group-rank with alphabetized-rank
+  imported.forEach(function(importedItem) {
+    importedItem.rank = alphabetizedRanks[importedItem.name]
+  })
+}
+
 // DETECTING
 
-function computeRank(context, ranks, name, type) {
+function computeGroupRank(context, ranks, name, type) {
   return ranks[importType(name, context)] +
     (type === 'import' ? 0 : 100)
 }
 
 function registerNode(context, node, name, type, ranks, imported) {
-  const rank = computeRank(context, ranks, name, type)
-  if (rank !== -1) {
-    imported.push({name, rank, node})
+  const groupRank = computeGroupRank(context, ranks, name, type)
+  if (groupRank !== -1) {
+    imported.push({
+      name,
+      groupRank,
+      // Before, or without alphabetization, individual rank matches group rank
+      rank: groupRank,
+      node,
+    })
   }
 }
 
@@ -333,13 +378,13 @@ function makeNewlinesBetweenReport (context, imported, newlinesBetweenImports) {
 
     if (newlinesBetweenImports === 'always'
         || newlinesBetweenImports === 'always-and-inside-groups') {
-      if (currentImport.rank !== previousImport.rank && emptyLinesBetween === 0) {
+      if (currentImport.groupRank !== previousImport.groupRank && emptyLinesBetween === 0) {
         context.report({
           node: previousImport.node,
           message: 'There should be at least one empty line between import groups',
           fix: fixNewLineAfterImport(context, previousImport, currentImport),
         })
-      } else if (currentImport.rank === previousImport.rank
+      } else if (currentImport.groupRank === previousImport.groupRank
         && emptyLinesBetween > 0
         && newlinesBetweenImports !== 'always-and-inside-groups') {
         context.report({
@@ -358,6 +403,28 @@ function makeNewlinesBetweenReport (context, imported, newlinesBetweenImports) {
 
     previousImport = currentImport
   })
+}
+
+function getAlphabetizeConfig(options) {
+  const alphabetize = options.alphabetize || {}
+  const order = alphabetize.order || 'ignore'
+  const ignoreCase = alphabetize.ignoreCase || false
+  
+  if (typeof order !== 'string') {
+    throw new Error('Incorrect alphabetize config: `order` property should be ' +
+      'a string, but `' + JSON.stringify(typeof order) + '` found instead.')
+  }
+  else if (['ignore', 'asc', 'desc'].indexOf(order) === -1) {
+    throw new Error('Incorrect alphabetize config: `order` property should be ' +
+      'either `ignore`, `asc` or `desc`, but `' + JSON.stringify(order) + '` found instead.')
+  }
+  
+  if (typeof ignoreCase !== 'boolean') {
+    throw new Error('Incorrect alphabetize config: ignoreCase should be ' +
+      'a boolean, but `' + JSON.stringify(typeof ignoreCase) + '` found instead.')
+  }
+
+  return {order, ignoreCase}
 }
 
 module.exports = {
@@ -383,6 +450,19 @@ module.exports = {
               'never',
             ],
           },
+          alphabetize: {
+            type: 'object',
+            properties: {
+              order: {
+                enum: ['ignore', 'asc', 'desc'],
+                default: 'ignore',
+              },
+              ignoreCase: {
+                type: 'boolean',
+                default: false,
+              },
+            },
+          },
         },
         additionalProperties: false,
       },
@@ -392,9 +472,11 @@ module.exports = {
   create: function importOrderRule (context) {
     const options = context.options[0] || {}
     const newlinesBetweenImports = options['newlines-between'] || 'ignore'
+    let alphabetize
     let ranks
 
     try {
+      alphabetize = getAlphabetizeConfig(options)
       ranks = convertGroupsToRanks(options.groups || defaultGroups)
     } catch (error) {
       // Malformed configuration
@@ -429,6 +511,10 @@ module.exports = {
         registerNode(context, node, name, 'require', ranks, imported)
       },
       'Program:exit': function reportAndReset() {
+        if (alphabetize.order !== 'ignore') {
+          mutateRanksToAlphabetize(imported, alphabetize.order, alphabetize.ignoreCase)
+        }
+
         makeOutOfOrderReport(context, imported)
 
         if (newlinesBetweenImports !== 'ignore') {

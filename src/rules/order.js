@@ -13,7 +13,6 @@ function reverse(array) {
     return {
       name: v.name,
       rank: -v.rank,
-      groupRank: -v.rank,
       node: v.node,
     }
   }).reverse()
@@ -280,21 +279,15 @@ function mutateRanksToAlphabetize(imported, order, ignoreCase) {
 
 // DETECTING
 
-function computeGroupRank(context, ranks, name, type) {
+function computeRank(context, ranks, name, type) {
   return ranks[importType(name, context)] +
     (type === 'import' ? 0 : 100)
 }
 
 function registerNode(context, node, name, type, ranks, imported) {
-  const groupRank = computeGroupRank(context, ranks, name, type)
-  if (groupRank !== -1) {
-    imported.push({
-      name,
-      groupRank,
-      // Before, or without alphabetization, individual rank matches group rank
-      rank: groupRank,
-      node,
-    })
+  const rank = computeRank(context, ranks, name, type)
+  if (rank !== -1) {
+    imported.push({name, rank, node})
   }
 }
 
@@ -378,13 +371,13 @@ function makeNewlinesBetweenReport (context, imported, newlinesBetweenImports) {
 
     if (newlinesBetweenImports === 'always'
         || newlinesBetweenImports === 'always-and-inside-groups') {
-      if (currentImport.groupRank !== previousImport.groupRank && emptyLinesBetween === 0) {
+      if (currentImport.rank !== previousImport.rank && emptyLinesBetween === 0) {
         context.report({
           node: previousImport.node,
           message: 'There should be at least one empty line between import groups',
           fix: fixNewLineAfterImport(context, previousImport, currentImport),
         })
-      } else if (currentImport.groupRank === previousImport.groupRank
+      } else if (currentImport.rank === previousImport.rank
         && emptyLinesBetween > 0
         && newlinesBetweenImports !== 'always-and-inside-groups') {
         context.report({

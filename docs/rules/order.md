@@ -163,24 +163,66 @@ import index from './';
 import sibling from './foo';
 ```
 
-### `alphabetize`: boolean
+### `alphabetize: object`:
 
-By default, no ordering within groups is enforced. When `alphabetize: true` is used, imports must be alphabetically ordered within their groups.
+Sort the order within each group in alphabetical manner:
 
-### Fail
+- `order`: use `asc` to sort in ascending order, and `desc` to sort in descending order (default: `ignore`).
+- `ignoreCase` [boolean]: when `true`, the rule ignores case-sensitivity of the import name (default: `false`).
 
+Example setting:
 ```js
-/* eslint import/order: ["error", {"alphabetize": true}] */
-import buffer from 'buffer';
-import assert from 'assert';
+alphabetize: {
+  order: 'asc', /* sort in ascending order. Options: ['ignore', 'asc', 'desc'] */
+  ignoreCase: false, /* case-sensitive. This property does not have any effect if 'order' is set to 'ignore' */
+}
 ```
 
-### Pass
+This will fail the rule check:
+
+```js
+import foo from 'foo';
+import bar from 'bar';
+import Baz from 'Baz';
+```
+
+While this will pass:
+
+```js
+import Baz from 'Baz';
+import bar from 'bar';
+import foo from 'foo';
+
+Sort the order within each group in alphabetical manner:
+
+- `order`: use `asc` to sort in ascending order, and `desc` to sort in descending order (default: `ignore`).
+- `ignoreCase` [boolean]: when `true`, the rule ignores case-sensitivity of the import name (default: `false`).
+
+Example setting:
+```js
+alphabetize: {
+  order: 'asc', /* sort in ascending order. Options: ['ignore', 'asc', 'desc'] */
+  ignoreCase: false, /* case-sensitive. This property does not have any effect if 'order' is set to 'ignore' */
+}
+```
+
+This will fail the rule check:
 
 ```js
 /* eslint import/order: ["error", {"alphabetize": true}] */
 import assert from 'assert';
 import buffer from 'buffer';
+import foo from 'foo';
+import bar from 'bar';
+import Baz from 'Baz';
+```
+
+While this will pass:
+
+```js
+import Baz from 'Baz';
+import bar from 'bar';
+import foo from 'foo';
 ```
 
 ## Related

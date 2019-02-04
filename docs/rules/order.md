@@ -1,7 +1,7 @@
 # import/order: Enforce a convention in module import order
 
 Enforce a convention in the order of `require()` / `import` statements.
-+(fixable) The `--fix` option on the [command line] automatically fixes problems reported by this rule. When the `alphabetize` option is used, multiple fix passes may be required.
++(fixable) The `--fix` option on the [command line] automatically fixes problems reported by this rule.
 The order is as shown in the following example:
 
 ```js

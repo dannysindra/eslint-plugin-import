@@ -1390,6 +1390,10 @@ ruleTester.run('order', rule, {
         groups: ['external', 'index'],
         alphabetize: {order: 'asc', ignoreCase: true}
       }],
+      errors: [{
+        ruleID: 'order',
+        message: '`bar` import should occur before import of `Baz`',
+      }]
     }),
     // Option alphabetize: {order: 'desc', ignoreCase: false}
     test({
